@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<title>Order Entry</title>
+<style>
+  body {
+    background: #eeeeea;
+    font-family: Arial, Helvetica, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+  }
+  .card {
+    background: #fff;
+    max-width: 520px;
+    width: 100%;
+    padding: 32px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+  h1 {
+    color: #1b3a2b;
+    margin: 0 0 6px;
+    font-size: 26px;
+  }
+  .subtitle {
+    color: #4a6b57;
+    margin: 0 0 24px;
+    font-size: 14px;
+  }
+  label {
+    display: block;
+    font-weight: bold;
+    color: #1b3a2b;
+    margin-bottom: 6px;
+    margin-top: 18px;
+    font-size: 14px;
+  }
+  label .req { color: #b23b3b; }
+  input[type=text], textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    background: #faf6ec;
+    border: 1px solid #d8d2c2;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  input[type=file] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    background: #faf6ec;
+    border: 1px solid #d8d2c2;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  textarea { resize: vertical; min-height: 90px; }
+  button {
+    margin-top: 26px;
+    width: 100%;
+    background: #2e6b52;
+    color: #fff;
+    border: none;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  button:hover { background: #255a44; }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  #msg { margin-top: 14px; font-size: 14px; text-align: center; }
+  #msg.success { color: #2e6b52; }
+  #msg.error { color: #b23b3b; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Order Entry</h1>
+    <p class="subtitle">Party ka naam, order file aur remarks bharein</p>
+
+    <form id="orderForm">
+      <label>Party Name <span class="req">*</span></label>
+      <input type="text" name="party_name" required>
+
+      <label>Order Image / PDF <span class="req">*</span></label>
+      <input type="file" name="order_file" accept="image/*,.pdf" required>
+
+      <label>Sales Person Name <span class="req">*</span></label>
+      <input type="text" name="sales_person" required>
+
+      <label>Remarks</label>
+      <textarea name="remarks"></textarea>
+
+      <button type="submit" id="submitBtn">Submit Order</button>
+      <div id="msg"></div>
+    </form>
+  </div>
+
+<script>
+const form = document.getElementById('orderForm');
+const msg = document.getElementById('msg');
+const btn = document.getElementById('submitBtn');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+  msg.textContent = '';
+  msg.className = '';
+
+  try {
+    const formData = new FormData(form);
+    const res = await fetch('/submit-order', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (data.success) {
+      msg.textContent = 'Order safaltapoorvak save ho gaya!';
+      msg.className = 'success';
+      form.reset();
+    } else {
+      msg.textContent = data.message || 'Kuch galat ho gaya.';
+      msg.className = 'error';
+    }
+  } catch (err) {
+    msg.textContent = 'Server se connect nahi ho paaya.';
+    msg.className = 'error';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Submit Order';
+});
+</script>
+</body>
+</html>
