@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const { Readable } = require('stream');
 const { Pool } = require('pg');
 const { google } = require('googleapis');
 const cloudinary = require('cloudinary').v2;
@@ -11,10 +12,8 @@ const app = express();
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ---------- File upload setup (in-memory, since Vercel has no persistent disk) ----------
 const upload = multer({ storage: multer.memoryStorage() });
 
-// ---------- Cloudinary setup (photo/file storage) ----------
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -34,8 +33,68 @@ function uploadToCloudinary(buffer, fileName) {
   });
 }
 
-// ---------- PostgreSQL connection pools ----------
-// Neon (cloud) is the primary database — this is what powers the live/hosted app.
+function getOAuthClient() {
+  const oAuth2Client = new google.auth.OAuth2(
+    process.env.OAUTH_CLIENT_ID,
+    process.env.OAUTH_CLIENT_SECRET,
+    `${process.env.APP_BASE_URL}/oauth2callback`
+  );
+  if (process.env.OAUTH_REFRESH_TOKEN) {
+    oAuth2Client.setCredentials({ refresh_token: process.env.OAUTH_REFRESH_TOKEN });
+  }
+  return oAuth2Client;
+}
+
+app.get('/auth-drive', (req, res) => {
+  const oAuth2Client = getOAuthClient();
+  const url = oAuth2Client.generateAuthUrl({
+    access_type: 'offline',
+    prompt: 'consent',
+    scope: ['https://www.googleapis.com/auth/drive.file']
+  });
+  res.redirect(url);
+});
+
+app.get('/oauth2callback', async (req, res) => {
+  try {
+    const oAuth2Client = getOAuthClient();
+    const { tokens } = await oAuth2Client.getToken(req.query.code);
+    res.send(`
+      <h2>Authorization successful!</h2>
+      <p>Copy this refresh token and save it as <b>OAUTH_REFRESH_TOKEN</b> in your environment variables:</p>
+      <textarea style="width:100%;height:100px">${tokens.refresh_token}</textarea>
+      <p>Once saved, this page is no longer needed.</p>
+    `);
+  } catch (err) {
+    res.status(500).send('Error: ' + err.message);
+  }
+});
+
+async function uploadToDrive(buffer, fileName, mimeType) {
+  const auth = getOAuthClient();
+  const drive = google.drive({ version: 'v3', auth });
+
+  const file = await drive.files.create({
+    requestBody: { name: fileName, parents: [process.env.DRIVE_FOLDER_ID] },
+    media: { mimeType, body: Readable.from(buffer) },
+    fields: 'id, webViewLink'
+  });
+
+  await drive.permissions.create({
+    fileId: file.data.id,
+    requestBody: { role: 'reader', type: 'anyone' }
+  });
+
+  return file.data.webViewLink;
+}
+
+async function uploadPhoto(buffer, fileName, mimeType) {
+  if (process.env.OAUTH_REFRESH_TOKEN && process.env.DRIVE_FOLDER_ID) {
+    return uploadToDrive(buffer, fileName, mimeType);
+  }
+  return uploadToCloudinary(buffer, fileName);
+}
+
 const neonPool = new Pool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT || 5432,
@@ -45,8 +104,6 @@ const neonPool = new Pool({
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
 });
 
-// Local PostgreSQL — only reachable while running on your own computer.
-// Writing to it is "best effort": if it's unavailable (e.g. on Vercel), it's skipped.
 const localPool = process.env.LOCAL_DB_HOST
   ? new Pool({
       host: process.env.LOCAL_DB_HOST,
@@ -58,7 +115,6 @@ const localPool = process.env.LOCAL_DB_HOST
     })
   : null;
 
-// ---------- Google Sheets auth ----------
 async function getSheetsClient() {
   const authOptions = { scopes: ['https://www.googleapis.com/auth/spreadsheets'] };
   if (process.env.GOOGLE_CREDENTIALS_JSON) {
@@ -82,7 +138,6 @@ async function appendToSheet(row) {
   });
 }
 
-// ---------- Main submit endpoint ----------
 app.post('/submit-order', upload.single('order_file'), async (req, res) => {
   const { party_name, sales_person, remarks } = req.body;
 
@@ -93,15 +148,13 @@ app.post('/submit-order', upload.single('order_file'), async (req, res) => {
   let orderId;
   let fileUrl;
 
-  // STEP 1: Upload photo/PDF to Cloudinary first, so we have a permanent link to store
   try {
-    fileUrl = await uploadToCloudinary(req.file.buffer, `${Date.now()}-${req.file.originalname}`);
+    fileUrl = await uploadPhoto(req.file.buffer, `${Date.now()}-${req.file.originalname}`, req.file.mimetype);
   } catch (err) {
-    console.error('Cloudinary upload failed:', err.message);
+    console.error('Photo upload failed:', err.message);
     return res.status(500).json({ success: false, message: 'File upload karte waqt error aayi.' });
   }
 
-  // STEP 2: Save to Neon (cloud) — this is the source of truth
   try {
     const result = await neonPool.query(
       `INSERT INTO orders (party_name, file_path, sales_person, remarks) VALUES ($1, $2, $3, $4) RETURNING id`,
@@ -113,7 +166,6 @@ app.post('/submit-order', upload.single('order_file'), async (req, res) => {
     return res.status(500).json({ success: false, message: 'Database mein save karte waqt error aayi.' });
   }
 
-  // STEP 2b: Also save a copy to local PostgreSQL, if configured and reachable
   if (localPool) {
     try {
       await localPool.query(
@@ -125,7 +177,6 @@ app.post('/submit-order', upload.single('order_file'), async (req, res) => {
     }
   }
 
-  // STEP 3: Sync row to Google Sheet (data is already safe in SQL even if this fails)
   try {
     await appendToSheet([orderId, party_name, sales_person, remarks || '', fileUrl, new Date().toISOString()]);
     await neonPool.query(`UPDATE orders SET synced_to_sheet = TRUE WHERE id = $1`, [orderId]);
@@ -138,8 +189,6 @@ app.post('/submit-order', upload.single('order_file'), async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-// Run a normal local server when started directly (node server.js / npm start).
-// On Vercel, this file is imported as a module instead, so listen() is skipped.
 if (require.main === module) {
   app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
 }
