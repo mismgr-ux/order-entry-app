@@ -115,6 +115,19 @@ const localPool = process.env.LOCAL_DB_HOST
     })
   : null;
 
+function formatTimestamp(date) {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const istOffsetMs = 5.5 * 60 * 60000;
+  const ist = new Date(date.getTime() + istOffsetMs);
+  const day = String(ist.getUTCDate()).padStart(2, '0');
+  const month = months[ist.getUTCMonth()];
+  const year = String(ist.getUTCFullYear()).slice(-2);
+  const hours = String(ist.getUTCHours()).padStart(2, '0');
+  const minutes = String(ist.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(ist.getUTCSeconds()).padStart(2, '0');
+  return `${day}-${month}-${year}:${hours}:${minutes}:${seconds}`;
+}
+
 async function getSheetsClient() {
   const authOptions = { scopes: ['https://www.googleapis.com/auth/spreadsheets'] };
   if (process.env.GOOGLE_CREDENTIALS_JSON) {
@@ -151,7 +164,7 @@ app.get('/sync-to-sheet', async (req, res) => {
         row.sales_person,
         row.remarks || '',
         row.file_path,
-        row.created_at.toISOString()
+        formatTimestamp(row.created_at)
       ]);
       await neonPool.query(`UPDATE orders SET synced_to_sheet = TRUE WHERE id = $1`, [row.id]);
     }
@@ -200,7 +213,7 @@ app.post('/submit-payment', upload.single('cheque_file'), async (req, res) => {
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       requestBody: {
-        values: [[paymentId, party_name, bill_no || '', bill_amount || '', credit_note_no || '', credit_note_amount || '', cheque_no || '', cheque_amount || '', fileUrl, new Date().toISOString()]]
+        values: [[paymentId, party_name, bill_no || '', bill_amount || '', credit_note_no || '', credit_note_amount || '', cheque_no || '', cheque_amount || '', fileUrl, formatTimestamp(new Date())]]
       }
     });
     await neonPool.query(`UPDATE payments SET synced_to_sheet = TRUE WHERE id = $1`, [paymentId]);
@@ -251,7 +264,7 @@ app.post('/submit-order', upload.single('order_file'), async (req, res) => {
   }
 
   try {
-    await appendToSheet([orderId, party_name, sales_person, remarks || '', fileUrl, new Date().toISOString()]);
+    await appendToSheet([orderId, party_name, sales_person, remarks || '', fileUrl, formatTimestamp(new Date())]);
     await neonPool.query(`UPDATE orders SET synced_to_sheet = TRUE WHERE id = $1`, [orderId]);
   } catch (err) {
     console.error('Google Sheet sync failed (data safe in SQL, will retry later):', err.message);
