@@ -176,6 +176,89 @@ app.get('/sync-to-sheet', async (req, res) => {
   }
 });
 
+const partyUpload = upload.fields([
+  { name: 'aadhaar_attachment', maxCount: 1 },
+  { name: 'gst_attachment', maxCount: 1 },
+  { name: 'pan_attachment', maxCount: 1 },
+  { name: 'bank_attachment', maxCount: 1 }
+]);
+
+app.post('/submit-party', partyUpload, async (req, res) => {
+  const {
+    applied_for, owner_name, owner_phone, email, aadhaar_no, company_name, address,
+    gst_number, pan_number, bank_account_no, billing_address, delivery_address,
+    landmark, role_applied_for, state, city, area_requested
+  } = req.body;
+
+  const files = req.files || {};
+  if (!owner_name || !owner_phone || !applied_for) {
+    return res.status(400).json({ success: false, message: 'Applied For, Owner Name aur Owner Phone zaroori hain.' });
+  }
+  if (!files.aadhaar_attachment || !files.gst_attachment || !files.pan_attachment || !files.bank_attachment) {
+    return res.status(400).json({ success: false, message: 'Chaaron attachments (Aadhaar, GST, PAN, Bank) zaroori hain.' });
+  }
+
+  let partyId;
+  let urls;
+
+  try {
+    urls = {
+      aadhaar: await uploadPhoto(files.aadhaar_attachment[0].buffer, `${Date.now()}-aadhaar-${files.aadhaar_attachment[0].originalname}`, files.aadhaar_attachment[0].mimetype),
+      gst: await uploadPhoto(files.gst_attachment[0].buffer, `${Date.now()}-gst-${files.gst_attachment[0].originalname}`, files.gst_attachment[0].mimetype),
+      pan: await uploadPhoto(files.pan_attachment[0].buffer, `${Date.now()}-pan-${files.pan_attachment[0].originalname}`, files.pan_attachment[0].mimetype),
+      bank: await uploadPhoto(files.bank_attachment[0].buffer, `${Date.now()}-bank-${files.bank_attachment[0].originalname}`, files.bank_attachment[0].mimetype)
+    };
+  } catch (err) {
+    console.error('Attachment upload failed:', err.message);
+    return res.status(500).json({ success: false, message: 'File upload karte waqt error aayi.' });
+  }
+
+  try {
+    const result = await neonPool.query(
+      `INSERT INTO party_onboarding (
+        applied_for, owner_name, owner_phone, email, aadhaar_no, aadhaar_attachment,
+        company_name, address, gst_number, gst_attachment, pan_number, pan_attachment,
+        bank_account_no, bank_attachment, billing_address, delivery_address, landmark,
+        role_applied_for, state, city, area_requested
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+      RETURNING id`,
+      [
+        applied_for, owner_name, owner_phone, email || null, aadhaar_no || null, urls.aadhaar,
+        company_name || null, address || null, gst_number || null, urls.gst, pan_number || null, urls.pan,
+        bank_account_no || null, urls.bank, billing_address || null, delivery_address || null, landmark || null,
+        role_applied_for || null, state || null, city || null, area_requested || null
+      ]
+    );
+    partyId = result.rows[0].id;
+  } catch (err) {
+    console.error('Neon insert (party_onboarding) failed:', err);
+    return res.status(500).json({ success: false, message: 'Database mein save karte waqt error aayi.' });
+  }
+
+  try {
+    const sheets = await getSheetsClient();
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.SPREADSHEET_ID,
+      range: `PartyOnboarding!A1`,
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: {
+        values: [[
+          partyId, applied_for, owner_name, owner_phone, email || '', aadhaar_no || '', urls.aadhaar,
+          company_name || '', address || '', gst_number || '', urls.gst, pan_number || '', urls.pan,
+          bank_account_no || '', urls.bank, billing_address || '', delivery_address || '', landmark || '',
+          role_applied_for || '', state || '', city || '', area_requested || '', formatTimestamp(new Date())
+        ]]
+      }
+    });
+    await neonPool.query(`UPDATE party_onboarding SET synced_to_sheet = TRUE WHERE id = $1`, [partyId]);
+  } catch (err) {
+    console.error('Google Sheet sync (party_onboarding) failed:', err.message);
+  }
+
+  res.json({ success: true, message: 'Party saved successfully!', partyId });
+});
+
 app.post('/submit-payment', upload.single('cheque_file'), async (req, res) => {
   const { party_name, bill_no, bill_amount, credit_note_no, credit_note_amount, cheque_no, cheque_amount } = req.body;
 

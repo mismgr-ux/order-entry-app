@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<title>Party Onboarding</title>
+<style>
+  body {
+    background: #eeeeea;
+    font-family: Arial, Helvetica, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+  }
+  .card {
+    background: #fff;
+    max-width: 560px;
+    width: 100%;
+    padding: 32px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+  h1 {
+    color: #1b3a2b;
+    margin: 0 0 6px;
+    font-size: 26px;
+  }
+  .subtitle {
+    color: #4a6b57;
+    margin: 0 0 24px;
+    font-size: 14px;
+  }
+  label {
+    display: block;
+    font-weight: bold;
+    color: #1b3a2b;
+    margin-bottom: 6px;
+    margin-top: 18px;
+    font-size: 14px;
+  }
+  label .req { color: #b23b3b; }
+  input[type=text], input[type=tel], input[type=email], select, textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    background: #faf6ec;
+    border: 1px solid #d8d2c2;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  input[type=file] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    background: #faf6ec;
+    border: 1px solid #d8d2c2;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  .section-title {
+    margin-top: 28px;
+    padding-top: 14px;
+    border-top: 1px solid #e2ddd0;
+    font-size: 15px;
+    font-weight: bold;
+    color: #2e6b52;
+  }
+  button {
+    margin-top: 26px;
+    width: 100%;
+    background: #2e6b52;
+    color: #fff;
+    border: none;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  button:hover { background: #255a44; }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  #msg { margin-top: 14px; font-size: 14px; text-align: center; }
+  #msg.success { color: #2e6b52; }
+  #msg.error { color: #b23b3b; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Party Onboarding</h1>
+    <p class="subtitle">Naye party ki details bharein</p>
+
+    <form id="partyForm">
+      <label>Applied For <span class="req">*</span></label>
+      <select name="applied_for" required>
+        <option value="">-- Select --</option>
+        <option value="Client Form">Client Form</option>
+        <option value="Approval Form">Approval Form</option>
+      </select>
+
+      <label>Owner Name <span class="req">*</span></label>
+      <input type="text" name="owner_name" required>
+
+      <label>Owner Phone No. <span class="req">*</span></label>
+      <input type="tel" name="owner_phone" required>
+
+      <label>Email</label>
+      <input type="email" name="email">
+
+      <label>Aadhaar No</label>
+      <input type="text" name="aadhaar_no">
+
+      <label>Aadhaar Attachment <span class="req">*</span></label>
+      <input type="file" name="aadhaar_attachment" accept="image/*,.pdf" capture="environment" required>
+
+      <label>Company Name</label>
+      <input type="text" name="company_name">
+
+      <label>Address</label>
+      <textarea name="address"></textarea>
+
+      <label>GST Number</label>
+      <input type="text" name="gst_number">
+
+      <label>GST Attachment <span class="req">*</span></label>
+      <input type="file" name="gst_attachment" accept="image/*,.pdf" capture="environment" required>
+
+      <label>PAN Number</label>
+      <input type="text" name="pan_number">
+
+      <label>PAN No. Attachment <span class="req">*</span></label>
+      <input type="file" name="pan_attachment" accept="image/*,.pdf" capture="environment" required>
+
+      <label>Bank Account No</label>
+      <input type="text" name="bank_account_no">
+
+      <label>Bank Attachment <span class="req">*</span></label>
+      <input type="file" name="bank_attachment" accept="image/*,.pdf" capture="environment" required>
+
+      <div class="section-title">Address Details</div>
+
+      <label>Billing Address (as per GST)</label>
+      <textarea name="billing_address"></textarea>
+
+      <label>Delivery Address (must be on GST)</label>
+      <textarea name="delivery_address"></textarea>
+
+      <label>Landmark (if any)</label>
+      <input type="text" name="landmark">
+
+      <label>Role Applied for</label>
+      <select name="role_applied_for">
+        <option value="">-- Select --</option>
+        <option value="Super Stockist">Super Stockist</option>
+        <option value="Distributor">Distributor</option>
+      </select>
+
+      <label>State</label>
+      <input type="text" name="state">
+
+      <label>City</label>
+      <input type="text" name="city">
+
+      <label>Area Requested</label>
+      <input type="text" name="area_requested">
+
+      <button type="submit" id="submitBtn">Submit</button>
+      <div id="msg"></div>
+    </form>
+  </div>
+
+<script>
+const form = document.getElementById('partyForm');
+const msg = document.getElementById('msg');
+const btn = document.getElementById('submitBtn');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+  msg.textContent = '';
+  msg.className = '';
+
+  try {
+    const formData = new FormData(form);
+    const res = await fetch('/submit-party', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (data.success) {
+      msg.textContent = 'Party safaltapoorvak save ho gaya!';
+      msg.className = 'success';
+      form.reset();
+    } else {
+      msg.textContent = data.message || 'Kuch galat ho gaya.';
+      msg.className = 'error';
+    }
+  } catch (err) {
+    msg.textContent = 'Server se connect nahi ho paaya.';
+    msg.className = 'error';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Submit';
+});
+</script>
+</body>
+</html>
