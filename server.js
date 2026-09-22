@@ -235,6 +235,27 @@ app.post('/submit-party', partyUpload, async (req, res) => {
     return res.status(500).json({ success: false, message: 'Database mein save karte waqt error aayi.' });
   }
 
+  if (localPool) {
+    try {
+      await localPool.query(
+        `INSERT INTO party_onboarding (
+          applied_for, owner_name, owner_phone, email, aadhaar_no, aadhaar_attachment,
+          company_name, address, gst_number, gst_attachment, pan_number, pan_attachment,
+          bank_account_no, bank_attachment, billing_address, delivery_address, landmark,
+          role_applied_for, state, city, area_requested
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+        [
+          applied_for, owner_name, owner_phone, email || null, aadhaar_no || null, urls.aadhaar,
+          company_name || null, address || null, gst_number || null, urls.gst, pan_number || null, urls.pan,
+          bank_account_no || null, urls.bank, billing_address || null, delivery_address || null, landmark || null,
+          role_applied_for || null, state || null, city || null, area_requested || null
+        ]
+      );
+    } catch (err) {
+      console.error('Local PostgreSQL insert (party_onboarding) skipped/failed (not critical):', err.message);
+    }
+  }
+
   try {
     const sheets = await getSheetsClient();
     await sheets.spreadsheets.values.append({
@@ -286,6 +307,18 @@ app.post('/submit-payment', upload.single('cheque_file'), async (req, res) => {
   } catch (err) {
     console.error('Neon insert (payments) failed:', err);
     return res.status(500).json({ success: false, message: 'Database mein save karte waqt error aayi.' });
+  }
+
+  if (localPool) {
+    try {
+      await localPool.query(
+        `INSERT INTO payments (party_name, bill_no, bill_amount, credit_note_no, credit_note_amount, cheque_no, cheque_amount, cheque_file)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [party_name, bill_no || null, bill_amount || null, credit_note_no || null, credit_note_amount || null, cheque_no || null, cheque_amount || null, fileUrl]
+      );
+    } catch (err) {
+      console.error('Local PostgreSQL insert (payments) skipped/failed (not critical):', err.message);
+    }
   }
 
   try {
