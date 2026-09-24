@@ -183,6 +183,66 @@ const partyUpload = upload.fields([
   { name: 'bank_attachment', maxCount: 1 }
 ]);
 
+app.post('/submit-job', upload.single('resume_file'), async (req, res) => {
+  const { name, contact_number, email, address, position_applied_for, education, work_experience, why_join } = req.body;
+
+  if (!name || !contact_number || !position_applied_for || !req.file) {
+    return res.status(400).json({ success: false, message: 'Name, Contact Number, Position aur Resume zaroori hain.' });
+  }
+
+  let jobId;
+  let fileUrl;
+
+  try {
+    fileUrl = await uploadPhoto(req.file.buffer, `${Date.now()}-${req.file.originalname}`, req.file.mimetype);
+  } catch (err) {
+    console.error('Resume upload failed:', err.message);
+    return res.status(500).json({ success: false, message: 'File upload karte waqt error aayi.' });
+  }
+
+  try {
+    const result = await neonPool.query(
+      `INSERT INTO job_applications (name, contact_number, email, address, position_applied_for, education, work_experience, resume_file, why_join)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+      [name, contact_number, email || null, address || null, position_applied_for, education || null, work_experience || null, fileUrl, why_join || null]
+    );
+    jobId = result.rows[0].id;
+  } catch (err) {
+    console.error('Neon insert (job_applications) failed:', err);
+    return res.status(500).json({ success: false, message: 'Database mein save karte waqt error aayi.' });
+  }
+
+  if (localPool) {
+    try {
+      await localPool.query(
+        `INSERT INTO job_applications (name, contact_number, email, address, position_applied_for, education, work_experience, resume_file, why_join)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [name, contact_number, email || null, address || null, position_applied_for, education || null, work_experience || null, fileUrl, why_join || null]
+      );
+    } catch (err) {
+      console.error('Local PostgreSQL insert (job_applications) skipped/failed (not critical):', err.message);
+    }
+  }
+
+  try {
+    const sheets = await getSheetsClient();
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.HR_SPREADSHEET_ID,
+      range: `Job Apply!A1`,
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: {
+        values: [[jobId, name, contact_number, email || '', address || '', position_applied_for, education || '', work_experience || '', fileUrl, why_join || '', formatTimestamp(new Date())]]
+      }
+    });
+    await neonPool.query(`UPDATE job_applications SET synced_to_sheet = TRUE WHERE id = $1`, [jobId]);
+  } catch (err) {
+    console.error('Google Sheet sync (job_applications) failed:', err.message);
+  }
+
+  res.json({ success: true, message: 'Application saved successfully!', jobId, fileUrl });
+});
+
 app.post('/submit-party', partyUpload, async (req, res) => {
   const {
     applied_for, owner_name, owner_phone, email, aadhaar_no, company_name, address,
