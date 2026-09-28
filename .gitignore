@@ -3,3 +3,13 @@ node_modules/
 credentials.json
 uploads/*
 !uploads/.gitkeep
+
+# More security
+.env.local
+.env.*.local
+SETUP_OLD.md
+.vscode/
+.idea/
+*.log
+.DS_Store
+Thumbs.db
