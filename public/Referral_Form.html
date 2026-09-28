@@ -38,7 +38,7 @@
     font-size: 14px;
   }
   label .req { color: #b23b3b; }
-  input[type=text], textarea {
+  input[type=text], textarea, select {
     width: 100%;
     box-sizing: border-box;
     padding: 10px 12px;
@@ -95,7 +95,18 @@
       <input type="file" name="resume_file" accept="application/pdf,image/*,.doc,.docx" capture="environment">
 
       <label>Referred For</label>
-      <input type="text" name="referred_for" placeholder="Position/Role">
+      <select name="referred_for">
+        <option value="" selected hidden>Choose</option>
+        <option value="Accounts">Accounts</option>
+        <option value="Sales">Sales</option>
+        <option value="HR">HR</option>
+        <option value="Production">Production</option>
+        <option value="Dispatch">Dispatch</option>
+        <option value="Designer">Designer</option>
+        <option value="MIS Executive">MIS Executive</option>
+        <option value="Quality Analyst">Quality Analyst</option>
+        <option value="Other">Other</option>
+      </select>
 
       <label>Any Other Update</label>
       <textarea name="any_other_update"></textarea>

@@ -98,7 +98,7 @@
 
       <label>Gender</label>
       <select name="gender">
-        <option value="">-- Select --</option>
+        <option value="" selected hidden>Choose</option>
         <option value="Male">Male</option>
         <option value="Female">Female</option>
         <option value="Other">Other</option>
@@ -114,13 +114,76 @@
       <input type="text" name="highest_education">
 
       <label>Position Applied For</label>
-      <input type="text" name="position_applied_for">
+      <select name="position_applied_for">
+        <option value="" selected hidden>Choose</option>
+        <option value="SALES REPRESENTATIVE">SALES REPRESENTATIVE</option>
+        <option value="NEW BUSINESS DEVELOPMENT">NEW BUSINESS DEVELOPMENT</option>
+        <option value="AREA SALES MANAGER">AREA SALES MANAGER</option>
+        <option value="NATIONAL SALES MANAGER">NATIONAL SALES MANAGER</option>
+        <option value="EXECUTIVE - HOD">EXECUTIVE - HOD</option>
+        <option value="HR MANAGER">HR MANAGER</option>
+        <option value="PURCHASE EXECUTIVE">PURCHASE EXECUTIVE</option>
+        <option value="CUSTOMER RELATIONSHIP MANAGER">CUSTOMER RELATIONSHIP MANAGER</option>
+        <option value="CUSTOMER RELATIONSHIP EXECUTIVE">CUSTOMER RELATIONSHIP EXECUTIVE</option>
+        <option value="ACCOUNTS EXECUTIVE">ACCOUNTS EXECUTIVE</option>
+        <option value="EXPORT DOCUMENTATION EXECUTIVE">EXPORT DOCUMENTATION EXECUTIVE</option>
+        <option value="SUPPLY CHAIN EXECUTIVE">SUPPLY CHAIN EXECUTIVE</option>
+        <option value="EXECUTIVE ASSISTANT AND HR">EXECUTIVE ASSISTANT AND HR</option>
+        <option value="PROMOTER">PROMOTER</option>
+        <option value="CRM & BD EXECUTIVE">CRM &amp; BD EXECUTIVE</option>
+        <option value="MT SALES HEAD">MT SALES HEAD</option>
+        <option value="SALES OFFICER">SALES OFFICER</option>
+        <option value="ACCOUNTS HEAD">ACCOUNTS HEAD</option>
+        <option value="MODERN TRADE JUNIOR EXECUTIVE">MODERN TRADE JUNIOR EXECUTIVE</option>
+        <option value="SALES EXECUTIVE">SALES EXECUTIVE</option>
+        <option value="EXPORT HEAD">EXPORT HEAD</option>
+        <option value="GODOWN INCHARGE">GODOWN INCHARGE</option>
+        <option value="SALES COORDINATOR">SALES COORDINATOR</option>
+        <option value="PROCESS COORDINATOR">PROCESS COORDINATOR</option>
+        <option value="MD">MD</option>
+        <option value="PRODUCTION HEAD">PRODUCTION HEAD</option>
+        <option value="SUPPLY CHAIN MANAGER">SUPPLY CHAIN MANAGER</option>
+        <option value="PROCUREMENT & OPERATIONS EXECUTIVE">PROCUREMENT &amp; OPERATIONS EXECUTIVE</option>
+        <option value="MIS EXECUTIVE">MIS EXECUTIVE</option>
+        <option value="GRAPHIC DESIGNER">GRAPHIC DESIGNER</option>
+        <option value="QUALITY ANALYST">QUALITY ANALYST</option>
+        <option value="ZONAL SALES MANAGER">ZONAL SALES MANAGER</option>
+        <option value="PRIMARY">PRIMARY</option>
+        <option value="PLANNING EXECUTIVE">PLANNING EXECUTIVE</option>
+        <option value="LOGISTICS">LOGISTICS</option>
+        <option value="SALES REPRESENTATIVE (KB)">SALES REPRESENTATIVE (KB)</option>
+        <option value="ASM - SMT">ASM - SMT</option>
+        <option value="JUNIOR ACCOUNTS EXECUTIVE">JUNIOR ACCOUNTS EXECUTIVE</option>
+        <option value="SENIOR ASM">SENIOR ASM</option>
+        <option value="CRR">CRR</option>
+        <option value="INTERN RECRUITER">INTERN RECRUITER</option>
+        <option value="SALES CO-ORDINATOR AND MARKETING EXECUTIVE">SALES CO-ORDINATOR AND MARKETING EXECUTIVE</option>
+        <option value="CORPORATE TRAINER">CORPORATE TRAINER</option>
+        <option value="HR INTERN">HR INTERN</option>
+        <option value="NEW BUSINESS DEVELOPMENT (Pan India)">NEW BUSINESS DEVELOPMENT (Pan India)</option>
+        <option value="SMT">SMT SO</option>
+      </select>
 
       <label>HR Name</label>
-      <input type="text" name="hr_name">
+      <select name="hr_name">
+        <option value="" selected hidden>Choose</option>
+        <option value="HR">HR</option>
+        <option value="Recruiter">Recruiter</option>
+      </select>
 
       <label>Source</label>
-      <input type="text" name="source" placeholder="e.g. Naukri, LinkedIn, Referral">
+      <select name="source">
+        <option value="" selected hidden>Choose</option>
+        <option value="Naukri.com">Naukri.com</option>
+        <option value="Consultant">Consultant</option>
+        <option value="Referral">Referral</option>
+        <option value="Social Media">Social Media</option>
+        <option value="Website">Website</option>
+        <option value="Job Hai">Job Hai</option>
+        <option value="Indeed">Indeed</option>
+        <option value="Work India">Work India</option>
+        <option value="Shine.com">Shine.com</option>
+      </select>
 
       <label>Contact Date</label>
       <input type="date" name="contact_date">
@@ -141,14 +204,16 @@
 
       <label>Stage</label>
       <select name="stage">
-        <option value="">-- Select --</option>
+        <option value="" selected hidden>Choose</option>
+        <option value="Interview">Interview</option>
+        <option value="Shortlist">Shortlist</option>
+        <option value="Reject">Reject</option>
+        <option value="Join">Join</option>
+        <option value="Offer Provided">Offer Provided</option>
         <option value="Screening">Screening</option>
-        <option value="Interview Scheduled">Interview Scheduled</option>
-        <option value="Interviewed">Interviewed</option>
-        <option value="Offered">Offered</option>
-        <option value="Joined">Joined</option>
-        <option value="Rejected">Rejected</option>
-        <option value="Declined by Candidate">Declined by Candidate</option>
+        <option value="HR Round">HR Round</option>
+        <option value="Offer Accepted">Offer Accepted</option>
+        <option value="Moved Out">Moved Out</option>
       </select>
 
       <label>Offer Date</label>
@@ -161,7 +226,13 @@
       <input type="number" step="0.01" name="salary_offered">
 
       <label>Decline Reasons</label>
-      <textarea name="decline_reasons"></textarea>
+      <select name="decline_reasons">
+        <option value="" selected hidden>Choose</option>
+        <option value="Technical">Technical</option>
+        <option value="Experience">Experience</option>
+        <option value="Salary">Salary</option>
+        <option value="Others">Others</option>
+      </select>
 
       <label>Decline Remark</label>
       <textarea name="decline_remark"></textarea>
